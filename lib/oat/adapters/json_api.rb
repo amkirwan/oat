@@ -11,7 +11,6 @@ module Oat
   module Adapters
 
     class JsonAPI < Oat::Adapter
-
       def initialize(*args)
         super
         @entities = {}
@@ -19,12 +18,12 @@ module Oat
         @meta = {}
       end
 
-      def rel(rels)
-        # no-op to maintain interface compatibility with the Siren adapter
+      def individual
+        @individual = true
       end
 
       def type(*types)
-        @root_name = types.first.to_s.pluralize.to_sym
+        @root_name = entity_name(types.first)
       end
 
       def link(rel, opts = {})
@@ -73,21 +72,16 @@ module Oat
         ent = serializer_from_block_or_class(obj, serializer_class, context_options, &block)
         if ent
           ent_hash = ent.to_hash
-          _name = entity_name(name)
-          link_name = _name.to_s.pluralize.to_sym
-          data[:links][_name] = ent_hash[:id]
-
-          entity_hash[link_name] ||= []
-          unless entity_hash[link_name].include? ent_hash
-            entity_hash[link_name] << ent_hash
-          end
+          ent_name = entity_name(name)
+          entity_hash[ent_name] ||= []
+          data[:links][name] = ent_hash[:id]
+          entity_hash[ent_name] << ent_hash
         end
       end
 
       def entities(name, collection, serializer_class = nil, context_options = {}, &block)
         return if collection.nil? || collection.empty?
-        _name = entity_name(name)
-        link_name = _name.to_s.pluralize.to_sym
+        link_name = entity_name(name)
         data[:links][link_name] = []
 
         collection.each do |obj|
@@ -128,6 +122,8 @@ module Oat
           h = {}
           if @treat_as_resource_collection
             h[root_name] = data[:resource_collection]
+          elsif @individual
+            h[root_name] = data
           else
             h[root_name] = [data]
           end
@@ -153,6 +149,10 @@ module Oat
       def entity_without_root(obj, serializer_class = nil, &block)
         ent = serializer_from_block_or_class(obj, serializer_class, &block)
         ent.to_hash.values.first.first if ent
+      end
+
+      def entity_name(name)
+        name.to_s.pluralize.to_sym
       end
 
     end
