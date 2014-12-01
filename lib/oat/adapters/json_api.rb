@@ -72,10 +72,14 @@ module Oat
         ent = serializer_from_block_or_class(obj, serializer_class, context_options, &block)
         if ent
           ent_hash = ent.to_hash
-          ent_name = entity_name(name)
-          entity_hash[ent_name] ||= []
+          _name = entity_name(name)
+          link_name = _name.to_s.pluralize.to_sym
           data[:links][name] = ent_hash[:id]
-          entity_hash[ent_name] << ent_hash
+
+          entity_hash[link_name] ||= []
+          unless entity_hash[link_name].include? ent_hash
+            entity_hash[link_name] << ent_hash
+          end
         end
       end
 
